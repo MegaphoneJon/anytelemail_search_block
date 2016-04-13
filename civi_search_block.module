@@ -1,0 +1,81 @@
+<?php
+function civi_search_block_block_info() {
+  $blocks = array(
+    'bestviewed' => array(
+      'info' => "Best viewed in Firefox",
+      'cache' => DRUPAL_CACHE_GLOBAL,
+      'status' => 1,
+      'region' => 'footer',
+      'visibility' => 1,
+      'pages' => '<front>'
+    ),
+    'phone_email_search' => array(
+      'info' => "Search by phone or email",
+      'cache' => DRUPAL_CACHE_PER_USER,
+      'status' => 1,
+      'region' => 'sidebar_first',
+      'visibility' => 0,
+      'pages' => "civicrm/event/info\ncivicrm/event/register\ncivicrm/petition\ncivicrm/friend\ncivicrm/contribute/transact\ncivicrm/pcp\ncivicrm/contribute/campaign\ncivicrm/profile\n"
+    )
+  );
+  return $blocks;
+}
+
+function civi_search_block_block_view($delta) {
+  $block = array();
+  switch($delta) {
+    case 'bestviewed':
+      $block['subject'] = NULL;
+      $block['content'] = '<em>This site works best in Firefox or Chrome. PowerBase is not fully functional in Internet Explorer.</em>';
+      
+      break;
+    case 'phone_email_search':
+      $block['subject'] = t("CiviCRM Search");
+      $block['content'] = civi_search_block_get_phone_email_search_form();
+  }
+  return $block;
+
+}
+
+function civi_search_block_get_phone_email_search_form() {
+  // Don't display unless you can access civicrm
+  if(!user_access('access CiviCRM')) {
+    return '';
+  }
+
+  civicrm_initialize();
+  // return if upgrade mode
+  $config = CRM_Core_Config::singleton();
+  if ($config->isUpgradeMode()) {
+    return;
+  }
+
+  // Get the qfKey so the post will be validated
+  $addSequence = TRUE;
+  $name = 'CRM_Contact_Controller_Search';
+  $qfKey = CRM_Core_Key::get($name, $addSequence); 
+
+  // Get the id of the custom search
+  $sql = "SELECT value FROM civicrm_option_value WHERE name = 'CRM_Anyteloremail_Form_Search_anyTelOrEmail';";
+  $dao = CRM_Core_DAO::executeQuery($sql);
+  $dao->fetch();
+
+  // Ensure the search is available
+  if(empty($dao->value)) return '';
+
+  $csid = $dao->value;
+
+  // Output the form.
+  $out = '<form action="/civicrm/contact/search/custom?csid=' . $csid . '" method="post" name="Custom" id="Custom" >';
+  $out .= '<div>';
+  $out .= '<input name="qfKey" type="hidden" value="' . $qfKey . '" />';
+  $out .= '<input name="_qf_default" type="hidden" value="Custom:refresh" />';
+  $out .= '</div>';
+  $out .= '<label for="number">' . t("Phone Number") . '</label><input name="number" size="15" type="text" id="number" class="form-text" />';
+  $out .= '<label for="number">' . t("Email address") . '</label><input name="email" size="15" type="text" id="number" class="form-text" />';
+  $out .= '<input class="form-submit default" name="_qf_Custom_refresh" value="Search" type="submit" id="_qf_Custom_refresh-bottom" />';
+  $out .= '</form>';
+  $out .= '<div class="form-item"><span class="description">' . t("Search CiviCRM using partial phone number or partial email address.") . '</span></div>';
+  return $out;
+}
+

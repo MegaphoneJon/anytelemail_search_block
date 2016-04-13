@@ -1,0 +1,4 @@
+name = "civi_search_block"
+description = The Powerbase search block, ripped from the Drupal OPB module"
+package = CiviCRM
+core = 7.x
